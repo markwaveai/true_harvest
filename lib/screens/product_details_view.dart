@@ -25,6 +25,7 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
   late final wishlistProviderController = ref.read(wishlistProvider);
   late final cartProviderController = ref.read(cartProvider);
   bool _showGoToCart = false;
+  bool _isBuyingNow = false;
   @override
   void initState() {
     super.initState();
@@ -335,13 +336,7 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
             // Buy Now Button
             Expanded(
               child: ElevatedButton(
-                onPressed: () {
-                  // TODO: Implement buy now functionality
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => const CartScreen()),
-                  );
-                },
+                onPressed: _isBuyingNow ? null : _handleBuyNow,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   backgroundColor: AppColors.darkGreen,
@@ -349,10 +344,19 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                 ),
-                child: const Text(
-                  'Buy Now',
-                  style: TextStyle(color: AppColors.white),
-                ),
+                child: _isBuyingNow
+                    ? const SizedBox(
+                        height: 20,
+                        width: 20,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        ),
+                      )
+                    : const Text(
+                        'Buy Now',
+                        style: TextStyle(color: AppColors.white),
+                      ),
               ),
             ),
           ],
@@ -378,5 +382,75 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
       context,
       MaterialPageRoute(builder: (context) => const CartScreen()),
     );
+  }
+
+  void _handleBuyNow() async {
+    if (_isBuyingNow) return;
+    
+    setState(() {
+      _isBuyingNow = true;
+    });
+
+    try {
+      // Get current cart items to find the quantity for this product
+      final cartItems = ref.read(cartProvider).items;
+      final selectedUnit = widget.product.units[selectedUnitIndex];
+      
+      // Find current quantity from cart or use 1 as default
+      final existingItem = cartItems.firstWhere(
+        (item) => 
+            item.product.id == widget.product.id &&
+            item.selectedUnit == selectedUnit.unitName,
+        orElse: () => CartItem(
+          product: widget.product,
+          selectedUnit: selectedUnit.unitName,
+          quantity: 1,
+        ),
+      );
+      
+      final currentQuantity = existingItem.quantity;
+      
+      // Use the new buyNow method for cleaner implementation
+      await cartProviderController.buyNow(
+        widget.product,
+        selectedUnit.unitName,
+        currentQuantity,
+      );
+      
+      // Show success message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('${widget.product.name} added to cart for immediate purchase!'),
+            backgroundColor: AppColors.darkGreen,
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+      
+      // Navigate to cart screen
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const CartScreen()),
+        );
+      }
+    } catch (e) {
+      // Show error message
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to add product to cart. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isBuyingNow = false;
+        });
+      }
+    }
   }
 }

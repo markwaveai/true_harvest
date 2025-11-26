@@ -81,4 +81,13 @@ class CartProvider with ChangeNotifier {
     }
     notifyListeners();
   }
+
+  // Buy Now functionality - clears cart and adds only the specified product
+  Future<void> buyNow(Product product, String unit, int quantity) async {
+    // Clear existing cart
+    await clearCart();
+    
+    // Add only the specified product with the given quantity
+    updateQuantity(product, unit, quantity);
+  }
 }
