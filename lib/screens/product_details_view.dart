@@ -83,17 +83,22 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
               ),
             ),
             actions: [
-              IconButton(
-                icon: Icon(
-                  wishlistProviderController.isInWishlist(widget.product)
-                      ? Icons.favorite
-                      : Icons.favorite_border,
-                  color: wishlistProviderController.isInWishlist(widget.product)
-                      ? Colors.red
-                      : Colors.white,
-                ),
-                onPressed: () {
-                  wishlistProviderController.toggleWishlist(widget.product);
+              Consumer(
+                builder: (context, ref, child) {
+                  final wishlistViewController = ref.watch(wishlistProvider);
+                  return IconButton(
+                    icon: Icon(
+                      wishlistViewController.isInWishlist(widget.product)
+                          ? Icons.favorite
+                          : Icons.favorite_border,
+                      color: wishlistViewController.isInWishlist(widget.product)
+                          ? Colors.red
+                          : AppColors.black,
+                    ),
+                    onPressed: () {
+                      wishlistProviderController.toggleWishlist(widget.product);
+                    },
+                  );
                 },
               ),
             ],
@@ -226,19 +231,6 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                     ),
                   ),
 
-                  const SizedBox(height: 24),
-
-                  // DESCRIPTION
-                  const Text(
-                    "Description",
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    widget.product.description,
-                    style: TextStyle(fontSize: 15, color: Colors.grey[800]),
-                  ),
-
                   const SizedBox(height: 25),
 
                   // FEATURES
@@ -350,7 +342,9 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                          valueColor: AlwaysStoppedAnimation<Color>(
+                            Colors.white,
+                          ),
                         ),
                       )
                     : const Text(
@@ -386,7 +380,7 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
 
   void _handleBuyNow() async {
     if (_isBuyingNow) return;
-    
+
     setState(() {
       _isBuyingNow = true;
     });
@@ -395,10 +389,10 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
       // Get current cart items to find the quantity for this product
       final cartItems = ref.read(cartProvider).items;
       final selectedUnit = widget.product.units[selectedUnitIndex];
-      
+
       // Find current quantity from cart or use 1 as default
       final existingItem = cartItems.firstWhere(
-        (item) => 
+        (item) =>
             item.product.id == widget.product.id &&
             item.selectedUnit == selectedUnit.unitName,
         orElse: () => CartItem(
@@ -407,27 +401,29 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
           quantity: 1,
         ),
       );
-      
+
       final currentQuantity = existingItem.quantity;
-      
+
       // Use the new buyNow method for cleaner implementation
       await cartProviderController.buyNow(
         widget.product,
         selectedUnit.unitName,
         currentQuantity,
       );
-      
+
       // Show success message
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${widget.product.name} added to cart for immediate purchase!'),
+            content: Text(
+              '${widget.product.name} added to cart for immediate purchase!',
+            ),
             backgroundColor: AppColors.darkGreen,
             duration: const Duration(seconds: 2),
           ),
         );
       }
-      
+
       // Navigate to cart screen
       if (mounted) {
         Navigator.push(

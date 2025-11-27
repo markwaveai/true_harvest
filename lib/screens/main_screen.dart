@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:task_new/screens/home_screen.dart';
 import 'package:task_new/screens/profile_screen.dart';
-import 'package:task_new/screens/subscription_screen.dart';
+import 'package:task_new/screens/subscription/subscription_screen.dart';
 import 'package:task_new/screens/wishlist_screen.dart';
 import 'package:task_new/utils/app_colors.dart';
 
@@ -25,10 +25,7 @@ class _MainScreenState extends State<MainScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: _screens),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) {
