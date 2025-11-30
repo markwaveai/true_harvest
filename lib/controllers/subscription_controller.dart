@@ -2,12 +2,38 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_riverpod/legacy.dart';
 import 'package:task_new/models/subscription_model.dart';
+import 'package:task_new/models/advanced_subscription_model.dart'
+    hide SubscriptionStatus;
 import 'package:task_new/models/product_model.dart';
+import 'package:task_new/services/subscription_service.dart';
 
 final subscriptionProvider = ChangeNotifierProvider<SubscriptionController>((
   ref,
 ) {
   return SubscriptionController();
+});
+
+// Advanced subscription service provider
+final advancedSubscriptionServiceProvider =
+    ChangeNotifierProvider<SubscriptionService>((ref) {
+      return SubscriptionService();
+    });
+
+// Providers for specific subscription data
+final activeSubscriptionsProvider = Provider<List<AdvancedSubscription>>((ref) {
+  final service = ref.watch(advancedSubscriptionServiceProvider);
+  return service.activeSubscriptions;
+});
+
+final todayDeliveriesProvider = Provider<List<DeliveryScheduleItem>>((ref) {
+  final service = ref.watch(advancedSubscriptionServiceProvider);
+  return service.todayDeliveries;
+});
+
+final subscriptionPlansProvider = Provider<List<SubscriptionPlanTemplate>>((
+  ref,
+) {
+  return SubscriptionPlanTemplate.getDefaultPlans();
 });
 
 class SubscriptionController extends ChangeNotifier {

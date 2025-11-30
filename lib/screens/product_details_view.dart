@@ -6,6 +6,7 @@ import 'package:task_new/controllers/whishlist_provider.dart';
 import 'package:task_new/models/cart_item.dart';
 import 'package:task_new/models/product_model.dart';
 import 'package:task_new/screens/cart_screen.dart';
+import 'package:task_new/screens/subscription_plan_screen.dart';
 import 'package:task_new/utils/app_colors.dart';
 import 'package:task_new/widgets/quantity_handler.dart';
 
@@ -272,19 +273,46 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
         ],
       ),
       bottomNavigationBar: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          boxShadow: [
-            BoxShadow(
-              color: Colors.grey.withOpacity(0.2),
-              spreadRadius: 1,
-              blurRadius: 5,
-              offset: const Offset(0, -2),
-            ),
-          ],
+    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.2),
+          spreadRadius: 1,
+          blurRadius: 5,
+          offset: const Offset(0, -2),
         ),
-        child: Row(
+      ],
+    ),
+    child: Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Subscription Button
+        SizedBox(
+          width: double.infinity,
+          child: OutlinedButton.icon(
+            onPressed: _goToSubscription,
+            style: OutlinedButton.styleFrom(
+              foregroundColor: AppColors.darkGreen,
+              side: BorderSide(color: AppColors.darkGreen),
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            icon: const Icon(Icons.subscriptions, size: 18),
+            label: const Text(
+              'Subscribe & Save',
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        Row(
           children: [
             // Add to Cart Button
             Expanded(
@@ -294,7 +322,6 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                       onPressed: _goToCart,
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
-
                         backgroundColor: AppColors.darkGreen,
                         minimumSize: const Size(double.infinity, 42),
                         shape: RoundedRectangleBorder(
@@ -312,7 +339,6 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                     )
                   : ElevatedButton.icon(
                       onPressed: _handleAddToCart,
-
                       style: ElevatedButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         backgroundColor: AppColors.primary,
@@ -342,9 +368,7 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
                         width: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            Colors.white,
-                          ),
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
                         ),
                       )
                     : const Text(
@@ -355,9 +379,11 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
             ),
           ],
         ),
-      ),
-    );
-  }
+      ],
+    ),
+  ),
+);
+}
 
   void _handleAddToCart() {
     // final cartProviderController = ref.read(cartProvider);
@@ -375,6 +401,19 @@ class _EachItemViewState extends ConsumerState<ProductDetailsView> {
     Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CartScreen()),
+    );
+  }
+
+  void _goToSubscription() {
+    final selectedUnit = widget.product.units[selectedUnitIndex];
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SubscriptionPlanScreen(
+          product: widget.product,
+          selectedUnit: selectedUnit.unitName,
+        ),
+      ),
     );
   }
 

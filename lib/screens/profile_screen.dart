@@ -163,7 +163,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 Row(
                   children: [
                     Text(
-                      userProfile?.name ?? 'John Doe',
+                      userProfile?.name ?? 'uma',
                       style: const TextStyle(
                         fontSize: 24,
                         fontWeight: FontWeight.bold,
@@ -206,12 +206,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  userProfile?.email ?? 'john.doe@example.com',
+                  userProfile?.email ?? 'uma.e@example.com',
                   style: TextStyle(fontSize: 16, color: Colors.grey[600]),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  userProfile?.mobile ?? '+91 9876543210',
+                  userProfile?.mobile ?? '+91 6305447441',
                   style: TextStyle(fontSize: 14, color: Colors.grey[500]),
                 ),
                 if (!verificationService.isVerified) ...[
