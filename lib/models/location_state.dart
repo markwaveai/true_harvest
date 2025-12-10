@@ -1,8 +1,10 @@
+import 'package:task_new/models/address_form_state.dart';
+
 class LocationState {
   final bool isLoading;
   final String location;
   final String? error;
-  final Map<String, String>? detailedAddress;
+  final AddressFormState? detailedAddress;
 
   LocationState({
     this.isLoading = false,
@@ -15,7 +17,7 @@ class LocationState {
     bool? isLoading,
     String? location,
     String? error,
-    Map<String, String>? detailedAddress,
+    AddressFormState? detailedAddress,
   }) {
     return LocationState(
       isLoading: isLoading ?? this.isLoading,

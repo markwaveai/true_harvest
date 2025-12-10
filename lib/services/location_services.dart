@@ -1,6 +1,7 @@
 // lib/services/location_service.dart
 import 'package:geolocator/geolocator.dart';
 import 'package:geocoding/geocoding.dart';
+import 'package:task_new/models/address_form_state.dart';
 
 class LocationService {
   // Get current location
@@ -53,8 +54,8 @@ class LocationService {
     }
   }
 
-  // Get detailed address components from coordinates
-  static Future<Map<String, String>> getDetailedAddressFromLatLng(Position position) async {
+  // Get detailed address components from coordinates as AddressFormState
+  static Future<AddressFormState> getDetailedAddressFromLatLng(Position position) async {
     try {
       final placemarks = await placemarkFromCoordinates(
         position.latitude,
@@ -63,35 +64,28 @@ class LocationService {
 
       if (placemarks.isNotEmpty) {
         final place = placemarks.first;
-        return {
-          'street': place.street ?? '',
-          'city': place.locality ?? '',
-          'state': place.administrativeArea ?? '',
-          'country': place.country ?? 'India',
-          'zip': place.postalCode ?? '',
-          'latitude': position.latitude.toString(),
-          'longitude': position.longitude.toString(),
-        };
+        return AddressFormState(
+          street: place.street ?? '',
+          city: place.locality ?? '',
+          state: place.administrativeArea ?? '',
+          country: place.country ?? 'India',
+          zip: place.postalCode ?? '',
+          isCurrentLocation: true,
+        );
       }
-      return {
-        'street': '',
-        'city': 'Unknown',
-        'state': 'Unknown',
-        'country': 'India',
-        'zip': '',
-        'latitude': position.latitude.toString(),
-        'longitude': position.longitude.toString(),
-      };
+      return AddressFormState(
+        city: 'Unknown',
+        state: 'Unknown',
+        country: 'India',
+        isCurrentLocation: true,
+      );
     } catch (e) {
-      return {
-        'street': '',
-        'city': 'Unknown',
-        'state': 'Unknown',
-        'country': 'India',
-        'zip': '',
-        'latitude': position.latitude.toString(),
-        'longitude': position.longitude.toString(),
-      };
+      return AddressFormState(
+        city: 'Unknown',
+        state: 'Unknown',
+        country: 'India',
+        isCurrentLocation: true,
+      );
     }
   }
 }

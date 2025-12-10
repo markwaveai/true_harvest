@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:task_new/controllers/address_controller.dart';
+import 'package:task_new/controllers/address_form_controller.dart';
 import 'package:task_new/controllers/location_provider.dart';
 import 'package:task_new/controllers/cart_controller.dart';
 import 'package:task_new/controllers/verification_controller.dart';
 import 'package:task_new/controllers/coupon_card_controller.dart';
-import 'package:task_new/models/address_model.dart';
 import 'package:task_new/screens/apply_coupon_card_screen.dart';
 import 'package:task_new/screens/payment_success_screen.dart';
 import 'package:task_new/services/razorpay_service.dart';
 import 'package:task_new/utils/app_colors.dart';
-import 'package:task_new/widgets/custom_textfield.dart';
-import 'package:task_new/widgets/section_header.dart';
 import 'package:task_new/widgets/verification_dialog.dart';
 import 'package:task_new/widgets/custom_alert_dialogue.dart';
-import 'package:task_new/widgets/discount_offer_card.dart';
 import 'package:task_new/widgets/cart_summary_card.dart';
+import 'package:task_new/widgets/address_form_fields.dart';
+import 'package:task_new/widgets/address_selection_list.dart';
+import 'package:fluttertoast/fluttertoast.dart';
 
 class CheckoutScreen extends ConsumerStatefulWidget {
   const CheckoutScreen({super.key});
@@ -29,115 +29,44 @@ class _CheckoutScreenState extends ConsumerState<CheckoutScreen> {
   String selectedPaymentMethod = 'cash_on_delivery';
   bool isProcessingOrder = false;
 
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _instructionsController = TextEditingController();
-  final TextEditingController _nameController = TextEditingController();
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _phoneController = TextEditingController();
-
   RazorPayService? _razorPayService;
 
   @override
   void initState() {
     super.initState();
-    
-    // Initialize Razorpay service
-_loadSavedAddress();
+    _loadAddressData();
     _initializeRazorpay();
   }
-void _loadSavedAddress() {
-    final addressController = ref.read(addressProvider);
-    final locationState = ref.read(locationProvider);
-    
-    if (addressController.address != null) {
-      final savedAddress = addressController.address!;
-      _addressController.text = savedAddress.fullAddress;
-      _nameController.text = savedAddress.name;
-      _emailController.text = savedAddress.email;
-      _phoneController.text = savedAddress.phone;
-      _instructionsController.text = savedAddress.deliveryInstructions ?? '';
-    } else if (locationState.detailedAddress != null) {
-      // Auto-populate from current location if no saved address
-      final loc = locationState.detailedAddress!;
-      final street = loc['street'] ?? '';
-      final city = loc['city'] ?? '';
-      final state = loc['state'] ?? '';
-      final zip = loc['zip'] ?? '';
-      final country = loc['country'] ?? 'India';
-      _addressController.text = [street, city, state, zip, country].where((s) => s.isNotEmpty).join(', ');
-    }
+
+  void _loadAddressData() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final formCtrl = ref.read(addressFormProvider);
+      final addressCtrl = ref.read(addressProvider);
+      final locationState = ref.read(locationProvider);
+
+      if (addressCtrl.address != null) {
+        formCtrl.loadAddress(addressCtrl.address!);
+      } else if (locationState.detailedAddress != null) {
+        formCtrl.loadFromLocation(locationState.detailedAddress!);
+      }
+    });
   }
 
-  // void _selectCurrentLocation() {
-  //   final locationState = ref.read(locationProvider);
-  //   if (locationState.detailedAddress == null) return;
-    
-  //   final loc = locationState.detailedAddress!;
-  //   setState(() {
-  //     _nameController.text = '';
-  //     _emailController.text = '';
-  //     _phoneController.text = '';
-  //     final street = loc['street'] ?? '';
-  //     final city = loc['city'] ?? '';
-  //     final state = loc['state'] ?? '';
-  //     final zip = loc['zip'] ?? '';
-  //     final country = loc['country'] ?? 'India';
-  //     _addressController.text = [street, city, state, zip, country].where((s) => s.isNotEmpty).join(', ');
-  //     _instructionsController.text = '';
-  //   });
-  // }
-
   void _selectCurrentLocation() {
-  final locationState = ref.read(locationProvider);
-  if (locationState.detailedAddress == null) return;
-  
-  final loc = locationState.detailedAddress!;
-  
-  // Get name from controller or use default
-  final userName = _nameController.text.trim().isNotEmpty 
-      ? _nameController.text.trim() 
-      : 'Current Location';
-  
-  // Create a new address from location
-  final locationAddress = AddressModel(
-    name: userName,
-    email: _emailController.text.trim(),
-    phone: _phoneController.text.trim(),
-    street: loc['street'] ?? '',
-    apartment: '',
-    city: loc['city'] ?? '',
-    state: loc['state'] ?? '',
-    zip: loc['zip'] ?? '',
-    country: loc['country'] ?? 'India',
-    deliveryInstructions: _instructionsController.text.trim(),
-  );
-  
-  // Update address (this will check for duplicates)
-  ref.read(addressProvider).updateAddress(locationAddress);
-  
-  setState(() {
-    if (_nameController.text.isEmpty) _nameController.text = 'Current Location';
-    final street = loc['street'] ?? '';
-    final city = loc['city'] ?? '';
-    final state = loc['state'] ?? '';
-    final zip = loc['zip'] ?? '';
-    final country = loc['country'] ?? 'India';
-    _addressController.text = [street, city, state, zip, country]
-        .where((s) => s.isNotEmpty)
-        .join(', ');
-    if (_instructionsController.text.isEmpty) {
-      _instructionsController.text = 'Deliver to current location';
-    }
-  });
-  
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(
-      content: Text('Current location saved as address'),
-      backgroundColor: Colors.green,
-      duration: Duration(seconds: 2),
-    ),
-  );
-}
+    final locationState = ref.read(locationProvider);
+    if (locationState.detailedAddress == null) return;
+
+    ref.read(addressFormProvider).loadFromLocation(locationState.detailedAddress!);
+
+    Fluttertoast.showToast(
+      msg: "Current location selected",
+      toastLength: Toast.LENGTH_SHORT,
+      gravity: ToastGravity.BOTTOM,
+      backgroundColor: AppColors.darkGreen,
+      textColor: AppColors.white,
+      fontSize: 16.0,
+    );
+  }
 
   void _initializeRazorpay() {
     _razorPayService = RazorPayService(
@@ -162,11 +91,14 @@ void _loadSavedAddress() {
           setState(() {
             isProcessingOrder = false;
           });
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text("Payment failed, please try again"),
-              backgroundColor: Colors.red,
-            ),
+        
+
+          Fluttertoast.showToast(msg: "Payment failed, please try again",
+              toastLength: Toast.LENGTH_SHORT,
+              gravity: ToastGravity.BOTTOM,
+              backgroundColor: AppColors.red,
+              textColor: AppColors.white,
+              fontSize: 16.0
           );
         }
       },
@@ -202,17 +134,12 @@ void _loadSavedAddress() {
     // Calculate final total with all discounts applied
     final total =
         totalBeforeDiscount - verificationDiscount - coupon.discountAmount;
-//Sync controllers when address changes
+    // Sync form controller when address changes
     if (addressController.address != null) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         final saved = addressController.address!;
-        if (_addressController.text != saved.fullAddress) {
-          _addressController.text = saved.fullAddress;
-          _nameController.text = saved.name;
-          _emailController.text = saved.email;
-          _phoneController.text = saved.phone;
-          _instructionsController.text = saved.deliveryInstructions ?? '';
-        }
+        final formCtrl = ref.read(addressFormProvider);
+        formCtrl.loadAddress(saved);
       });
     }
 
@@ -222,11 +149,11 @@ void _loadSavedAddress() {
         backgroundColor: AppColors.darkGreen,
         title: const Text(
           'Checkout',
-          style: TextStyle(color: Colors.white, fontWeight: FontWeight.w600),
+          style: TextStyle(color: AppColors.white, fontWeight: FontWeight.w600),
         ),
         centerTitle: true,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.white),
+          icon: const Icon(Icons.arrow_back, color: AppColors.white),
           onPressed: () => Navigator.pop(context),
         ),
       ),
@@ -250,166 +177,48 @@ void _loadSavedAddress() {
                     title: 'Delivery Address',
                     child: Column(
                       children: [
-                        if (addressController.addresses.isNotEmpty) ...[
-                          Container(
-                            padding: const EdgeInsets.all(12),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(12),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withOpacity(0.03),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    const Icon(Icons.location_on, color: AppColors.darkGreen, size: 18),
-                                    const SizedBox(width: 8),
-                                    const Text('Saved Addresses', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
-                                    const Spacer(),
-                                    TextButton.icon(
-                                      onPressed: _showAddressDialog,
-                                      icon: const Icon(Icons.add, size: 18),
-                                      label: const Text('Add New'),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
-                                ListView.separated(
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  itemCount: addressController.addresses.length + 1,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 8),
-                                  itemBuilder: (ctx, idx) {
-                                    // Show current location as first option
-                                    if (idx == 0) {
-                                      final locationState = ref.watch(locationProvider);
-                                      final hasLocationData = locationState.detailedAddress != null && locationState.detailedAddress!.isNotEmpty;
-                                      
-                                      if (hasLocationData) {
-                                        return RadioListTile<String>(
-                                          value: 'current_location',
-                                          groupValue: addressController.address == null ? 'current_location' : null,
-                                          title: const Text('Current Location'),
-                                          subtitle: Text(
-                                            '${locationState.detailedAddress!['street'] ?? ''}, ${locationState.detailedAddress!['city'] ?? ''}, ${locationState.detailedAddress!['state'] ?? ''} ${locationState.detailedAddress!['zip'] ?? ''}',
-                                            style: TextStyle(color: Colors.grey[700]),
-                                          ),
-                                          onChanged: (v) {
-                                            if (v == null) return;
-                                            ref.read(addressProvider).clearAddress();
-                                            _selectCurrentLocation();
-                                            ScaffoldMessenger.of(context).showSnackBar(
-                                              const SnackBar(content: Text('Address selected'), backgroundColor: Colors.green, duration: Duration(seconds: 1)),
-                                            );
-                                          },
-                                        );
-                                      }
-                                      return const SizedBox.shrink();
-                                    }
-                                    
-                                    final actualIdx = idx - 1;
-                                    final a = addressController.addresses[actualIdx];
-                                    final selectedIndex = addressController.address != null
-                                        ? addressController.addresses.indexWhere((x) => x.fullAddress == addressController.address!.fullAddress && x.name == addressController.address!.name)
-                                        : -1;
-                                    return RadioListTile<int>(
-                                      value: actualIdx,
-                                      groupValue: selectedIndex >= 0 && addressController.address != null ? selectedIndex : null,
-                                      title: Text(a.name),
-                                      subtitle: Text(a.fullAddress, style: TextStyle(color: Colors.grey[700])),
-                                      onChanged: (v) {
-                                        if (v == null) return;
-                                        ref.read(addressProvider).selectAddress(v);
-                                        final chosen = addressController.addresses[v];
-                                        setState(() {
-                                          _nameController.text = chosen.name;
-                                          _emailController.text = chosen.email;
-                                          _phoneController.text = chosen.phone;
-                                          _addressController.text = chosen.fullAddress;
-                                          _instructionsController.text = chosen.deliveryInstructions ?? '';
-                                        });
-                                        ScaffoldMessenger.of(context).showSnackBar(
-                                          const SnackBar(content: Text('Address selected'), backgroundColor: Colors.green, duration: Duration(seconds: 1)),
-                                        );
-                                      },
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(12),
+                            boxShadow: [
+                              BoxShadow(
+                                color: AppColors.black.withOpacity(0.03),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
                           ),
-                          const SizedBox(height: 12),
-                        ],
-                        // Container(
-                        //   padding: const EdgeInsets.all(16),
-                        //   decoration: BoxDecoration(
-                        //     color: Colors.white,
-                        //     borderRadius: BorderRadius.circular(12),
-                        //     border: Border.all(color: Colors.grey[200]!),
-                        //   ),
-                        //   child: Row(
-                        //     children: [
-                        //       Container(
-                        //         padding: const EdgeInsets.all(8),
-                        //         decoration: BoxDecoration(
-                        //           color: AppColors.lightBackground,
-                        //           borderRadius: BorderRadius.circular(8),
-                        //         ),
-                        //         child: const Icon(
-                        //           Icons.location_on,
-                        //           color: AppColors.darkGreen,
-                        //           size: 20,
-                        //         ),
-                        //       ),
-                        //       const SizedBox(width: 12),
-                        //       Expanded(
-                        //         child: Column(
-                        //           crossAxisAlignment: CrossAxisAlignment.start,
-                        //           children: [
-                        //             const Text(
-                        //               'Home',
-                        //               style: TextStyle(
-                        //                 fontSize: 16,
-                        //                 fontWeight: FontWeight.w600,
-                        //               ),
-                        //             ),
-                        //             const SizedBox(height: 4),
-                        //             Column(
-
-                        //               children: [
-
-                                    
-                        //             Text(
-                        //               addressController.address?.fullAddress ?? _addressController.text,
-                        //               style: TextStyle(
-                        //                 fontSize: 14,
-                        //                 color: Colors.grey[600],
-                        //               ),
-                        //             ),
-                        //             ],)
-                        //           ],
-                        //         ),
-                        //       ),
-                        //       TextButton(
-                        //         onPressed: _showAddressDialog,
-                        //         child: const Text(
-                        //           'Change',
-                        //           style: TextStyle(
-                        //             color: AppColors.darkGreen,
-                        //             fontWeight: FontWeight.w600,
-                        //           ),
-                        //         ),
-                        //       ),
-                        //     ],
-                        //   ),
-                        // ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  const Icon(Icons.location_on, color: AppColors.darkGreen, size: 18),
+                                  const SizedBox(width: 8),
+                                  const Text('Saved Addresses', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                                  const Spacer(),
+                                  TextButton.icon(
+                                    onPressed: _showAddressDialog,
+                                    icon: const Icon(Icons.add, size: 18),
+                                    label: const Text('Add New'),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 8),
+                              AddressSelectionList(
+                                onAddressSelected: () {
+                                  // AddressSelectionList will sync form + provider
+                                },
+                                onLocationSelected: () {
+                                  // Location selection handled inside the widget
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 12),
                       ],
                     ),
                   ),
@@ -566,7 +375,7 @@ void _loadSavedAddress() {
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.bold,
-            color: Colors.black87,
+            color: AppColors.black87,
           ),
         ),
         const SizedBox(height: 12),
@@ -598,7 +407,7 @@ void _loadSavedAddress() {
           color: AppColors.white,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isCurrentSelected ? AppColors.darkGreen : Colors.grey[200]!,
+            color: isCurrentSelected ? AppColors.darkGreen : AppColors.grey,
             width: isCurrentSelected ? 2 : 1,
           ),
         ),
@@ -775,38 +584,16 @@ void _loadSavedAddress() {
 
   void _showAddressDialog() {
     final locationState = ref.read(locationProvider);
-    final locationData = locationState.detailedAddress ?? {};
 
     final _dialogFormKey = GlobalKey<FormState>();
-
-    // Controllers pre-filled from location data for new address
-    final nameCtrl = TextEditingController(text: _nameController.text);
-    final emailCtrl = TextEditingController(text: _emailController.text);
-    final phoneCtrl = TextEditingController(text: _phoneController.text);
-    final streetCtrl = TextEditingController(text: 
-   // locationData['street'] ??
-     '');
-    final apartmentCtrl = TextEditingController(text: '');
-    final cityCtrl = TextEditingController(text:
-   //  locationData['city'] ?? 
-     '');
-    final stateCtrl = TextEditingController(text: 
-   // locationData['state'] ??
-     '');
-    final zipCtrl = TextEditingController(text: 
-   // locationData['zip'] ??
-     '');
-    final countryCtrl = TextEditingController(text: 
-    //locationData['country'] ??
-     'India');
-    final instructionsCtrl = TextEditingController(text: '');
+    // Clear only fields while preserving address selection state
+    ref.read(addressFormProvider).clearFieldsOnly();
 
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (context) {
-        return StatefulBuilder(builder: (context, setStateDialog) {
-          return Dialog(
+        return Dialog(
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
             child: Container(
               constraints: BoxConstraints(
@@ -818,6 +605,7 @@ void _loadSavedAddress() {
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   // Header
                   Container(
@@ -842,7 +630,7 @@ void _loadSavedAddress() {
                                 style: TextStyle(
                                   fontSize: 20,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: AppColors.white,
                                 ),
                               ),
                               SizedBox(height: 4),
@@ -864,146 +652,21 @@ void _loadSavedAddress() {
                     ),
                   ),
                   // Content
-                  Expanded(
+                  Flexible(
+                    fit: FlexFit.loose,
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(20),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          // Always show the address form
-                          // Shipping Address Form
-                            SectionHeader(
-                              icon: Icons.home_outlined,
-                              title: 'Shipping Address',
-                              subtitle: 'Where should we deliver?',
-                            ),
-                            const SizedBox(height: 16),
-                            Form(
-                              key: _dialogFormKey,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  CustomTextField(
-                                    label: 'Street Address',
-                                    controller: streetCtrl,
-                                    hintText: '123 Main Street',
-                                    prefixIcon: Icons.location_on_outlined,
-                                    validator: (value) {
-                                      if (value == null || value.isEmpty) {
-                                        return 'Please enter street address';
-                                      }
-                                      return null;
-                                    },
-                                  ),
-                                  const SizedBox(height: 12),
-                                  CustomTextField(
-                                    label: 'Apartment, Suite, etc.',
-                                    controller: apartmentCtrl,
-                                    hintText: 'Plot No. / Apartment',
-                                    prefixIcon: Icons.apartment_outlined,
-                                    isOptional: true,
-                                    validator: (value) => null,
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: CustomTextField(
-                                          label: 'City',
-                                          controller: cityCtrl,
-                                          hintText: 'Your City',
-                                          prefixIcon: Icons.location_city,
-                                          validator: (value) {
-                                            if (value == null || value.isEmpty) {
-                                              return 'Required';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: CustomTextField(
-                                          label: 'State',
-                                          controller: stateCtrl,
-                                          hintText: 'State',
-                                          prefixIcon: Icons.map_outlined,
-                                          validator: (value) {
-                                            if (value == null || value.isEmpty) {
-                                              return 'Required';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Row(
-                                    children: [
-                                      Expanded(
-                                        child: CustomTextField(
-                                          label: 'ZIP Code',
-                                          controller: zipCtrl,
-                                          hintText: '110001',
-                                          prefixIcon: Icons.mail_outline,
-                                          keyboardType: TextInputType.number,
-                                          validator: (value) {
-                                            if (value == null || value.isEmpty) {
-                                              return 'Required';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                      const SizedBox(width: 12),
-                                      Expanded(
-                                        child: CustomTextField(
-                                          label: 'Country',
-                                          controller: countryCtrl,
-                                          hintText: 'India',
-                                          prefixIcon: Icons.public,
-                                          validator: (value) {
-                                            if (value == null || value.isEmpty) {
-                                              return 'Required';
-                                            }
-                                            return null;
-                                          },
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 24),
-                                  SectionHeader(
-                                    icon: Icons.note_outlined,
-                                    title: 'Delivery Instructions',
-                                    subtitle: 'Optional but helpful',
-                                  ),
-                                  const SizedBox(height: 12),
-                                  Container(
-                                    decoration: BoxDecoration(
-                                      border: Border.all(
-                                        color: Colors.grey[300]!,
-                                        width: 1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(10),
-                                      color: Colors.grey[50],
-                                    ),
-                                    child: TextField(
-                                      controller: instructionsCtrl,
-                                      maxLines: 3,
-                                      decoration: InputDecoration(
-                                        hintText: 'E.g., Ring doorbell twice, Leave at gate, etc.',
-                                        hintStyle: TextStyle(color: Colors.grey[400]),
-                                        border: InputBorder.none,
-                                        contentPadding: const EdgeInsets.all(16),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 24),
-                                ],
-                              ),
-                            ),
+                          // Address Form using new widget
+                          Consumer(builder: (ctx, ref2, _) {
+                            return AddressFormFields(
+                              includePersonalInfo: false,
+                              formKey: _dialogFormKey,
+                            );
+                          }),
+                          const SizedBox(height: 24),
                         ],
                       ),
                     ),
@@ -1016,107 +679,81 @@ void _loadSavedAddress() {
                         top: BorderSide(color: Colors.grey[200]!),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: OutlinedButton(
-                            onPressed: () => Navigator.pop(context),
-                            style: OutlinedButton.styleFrom(
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              side: BorderSide(color: Colors.grey[300]!),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
+                    child: Consumer(builder: (ctx, ref, _) {
+                      return Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton(
+                              onPressed: () => Navigator.pop(ctx),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                side: BorderSide(color: Colors.grey[300]!),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
                               ),
-                            ),
-                            child: const Text(
-                              'Cancel',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.black87,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              // Validate and save new address
-                              if (_dialogFormKey.currentState!.validate()) {
-                                final newAddress = AddressModel(
-                                  name: nameCtrl.text.trim(),
-                                  email: emailCtrl.text.trim(),
-                                  phone: phoneCtrl.text.trim(),
-                                  street: streetCtrl.text.trim(),
-                                  apartment: apartmentCtrl.text.trim(),
-                                  city: cityCtrl.text.trim(),
-                                  state: stateCtrl.text.trim(),
-                                  zip: zipCtrl.text.trim(),
-                                  country: countryCtrl.text.trim(),
-                                  deliveryInstructions: instructionsCtrl.text.trim(),
-                                );
-                                ref.read(addressProvider).updateAddress(newAddress);
-                                // update the quick display fields in checkout
-                                setState(() {
-                                  _nameController.text = nameCtrl.text.trim();
-                                  _emailController.text = emailCtrl.text.trim();
-                                  _phoneController.text = phoneCtrl.text.trim();
-                                  _addressController.text = [
-                                    streetCtrl.text.trim(),
-                                    apartmentCtrl.text.trim(),
-                                    cityCtrl.text.trim(),
-                                    stateCtrl.text.trim(),
-                                    zipCtrl.text.trim(),
-                                    countryCtrl.text.trim(),
-                                  ].where((s) => s.isNotEmpty).join(', ');
-                                  _instructionsController.text = instructionsCtrl.text.trim();
-                                });
-                                Navigator.pop(context);
-                                ScaffoldMessenger.of(this.context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Address saved successfully!'),
-                                    backgroundColor: Colors.green,
-                                    duration: Duration(seconds: 2),
-                                  ),
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.darkGreen,
-                              padding: const EdgeInsets.symmetric(vertical: 14),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                            ),
-                            child: const Text(
-                              'Save Address',
-                              style: TextStyle(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w600,
-                                color: Colors.white,
+                              child: const Text(
+                                'Cancel',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.black87,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      ],
-                    ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: ElevatedButton(
+                              onPressed: () {
+                                // Validate and save new address
+                                if (_dialogFormKey.currentState!.validate()) {
+                                    final formCtrl = ref.read(addressFormProvider);
+                                    final addressCtrl = ref.read(addressProvider);
+                                    final address = formCtrl.buildAddressModel();
+                                    addressCtrl.addAddress(address);
+                                    // Select newly added address and sync form
+                                    addressCtrl.selectAddressById(address.id);
+                                    formCtrl.loadAddress(address);
+                                    Navigator.pop(ctx);
+                                   
+                                    Fluttertoast.showToast(msg: 'Address saved successfully!',
+                                        backgroundColor: AppColors.darkGreen,
+                                        textColor: AppColors.white,
+                                    );
+                                  }
+                              },
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: AppColors.darkGreen,
+                                padding: const EdgeInsets.symmetric(vertical: 14),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(10),
+                                ),
+                              ),
+                              child: const Text(
+                                'Save Address',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w600,
+                                  color: AppColors.white,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
+                      );
+                    }),
                   ),
                 ],
               ),
             ),
-          );
-        });
+        );
       },
     );
   }
-    @override
+
+  @override
   void dispose() {
-    _addressController.dispose();
-    _instructionsController.dispose();
-    _nameController.dispose();
-    _emailController.dispose();
-    _phoneController.dispose();
     _razorPayService?.dispose();
     super.dispose();
   }
@@ -1155,13 +792,15 @@ void _loadSavedAddress() {
     });
 
     final total = _getTotalAmount();
+    final formCtrl = ref.read(addressFormProvider);
+
     debugPrint('Opening Razorpay with amount: ₹$total');
 
     _razorPayService?.openPayment(
       amount: total,
-      customerName: _nameController.text.trim(),
-      customerEmail: _emailController.text.trim(),
-      customerPhone: _phoneController.text.trim(),
+      customerName: formCtrl.name,
+      customerEmail: formCtrl.email,
+      customerPhone: formCtrl.phone,
       description: 'True Harvest - Fresh Organic Products',
     );
   }
