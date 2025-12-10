@@ -1,13 +1,19 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:task_new/controllers/location_provider.dart';
 import 'package:task_new/controllers/subscription_controller.dart';
 import 'package:task_new/controllers/address_controller.dart';
+import 'package:task_new/controllers/address_form_controller.dart';
 import 'package:task_new/controllers/subscription_service.dart';
 import 'package:task_new/models/advanced_subscription_model.dart';
 import 'package:task_new/models/product_model.dart';
+import 'package:task_new/models/address_model.dart';
+import 'package:task_new/models/address_form_state.dart';
 import 'package:task_new/models/subscription_plan_template.dart';
 import 'package:task_new/utils/app_colors.dart';
 import 'package:task_new/screens/subscriptions/subscription_checkout_screen.dart';
+import 'package:task_new/widgets/address_form_fields.dart';
 
 class SubscriptionSetupScreen extends ConsumerStatefulWidget {
   final Product product;
@@ -34,9 +40,6 @@ class _SubscriptionSetupScreenState
   List<String> selectedWeeklyDays = [];
   List<CustomDeliveryDate> customDates = [];
 
-  final TextEditingController _addressController = TextEditingController();
-  final TextEditingController _instructionsController = TextEditingController();
-
   @override
   void initState() {
     super.initState();
@@ -54,6 +57,19 @@ class _SubscriptionSetupScreenState
         break;
       default:
         selectedPattern = DeliveryPattern.daily;
+    }
+    _loadAddressData();
+  }
+
+  void _loadAddressData() {
+    final addressController = ref.read(addressProvider);
+    final locationState = ref.read(locationProvider);
+    final formCtrl = ref.read(addressFormProvider);
+
+    if (addressController.address != null) {
+      formCtrl.loadAddress(addressController.address!);
+    } else if (locationState.detailedAddress != null) {
+      formCtrl.loadFromLocation(locationState.detailedAddress!);
     }
   }
 
@@ -565,6 +581,9 @@ class _SubscriptionSetupScreenState
       builder: (context, ref, child) {
         final addressController = ref.watch(addressProvider);
         final savedAddress = addressController.address;
+        final locationaddress=ref.watch(locationProvider);
+        final isUsingLocation=addressController.address==null && locationaddress.detailedAddress!=null;
+        final locationdata=locationaddress.detailedAddress;
 
         return Container(
           padding: const EdgeInsets.all(16),
@@ -589,13 +608,13 @@ class _SubscriptionSetupScreenState
                     'Delivery Address',
                     style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                   ),
-                  TextButton(
-                    onPressed: () {
-                      // Allow user to edit address in _addressController
-                      _showAddressEditDialog();
-                    },
-                    child: const Text('Edit'),
-                  ),
+                  // TextButton(
+                  //   onPressed: () {
+                  //     // Allow user to edit address in _addressController
+                  //     _showAddressEditDialog({});
+                  //   },
+                  //   child: const Text('Edit'),
+                  // ),
                 ],
               ),
               const SizedBox(height: 12),
@@ -612,33 +631,14 @@ class _SubscriptionSetupScreenState
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Contact Info
+                      // Complete Address as paragraph
                       Text(
-                        '${savedAddress.name}',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Phone: ${savedAddress.phone}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        'Email: ${savedAddress.email}',
-                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                      ),
-                      const SizedBox(height: 10),
-                      // Address Info as paragraph
-                      Text(
+                        //'${savedAddress.name}, ${savedAddress.phone}, ${savedAddress.email}, 
                         '${savedAddress.street}, ${savedAddress.apartment}, ${savedAddress.city}, ${savedAddress.state} ${savedAddress.zip}, ${savedAddress.country}',
                         style: TextStyle(
                           fontSize: 14,
                           color: Colors.grey[700],
-                          height: 1.5,
+                          height: 1.6,
                         ),
                       ),
                       if (savedAddress.deliveryInstructions != null &&
@@ -686,6 +686,59 @@ class _SubscriptionSetupScreenState
                     ],
                   ),
                 )
+              else if (isUsingLocation && locationdata != null)
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: Colors.blue[200]!),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.location_on,
+                                color: Colors.blue[700],
+                                size: 20,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Address from current location',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.blue[800],
+                                ),
+                              ),
+                            ],
+                          ),
+                          // TextButton(
+                          //   onPressed: () {
+                          //     _showAddressEditDialog(locationdata);
+                          //   },
+                          //   child: const Text('Edit'),
+                          // ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Address in paragraph format
+                      Text(
+                        '${locationdata.street}, ${locationdata.city}, ${locationdata.state} ${locationdata.zip}, ${locationdata.country}',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[700],
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
               else
                 Container(
                   padding: const EdgeInsets.all(16),
@@ -706,18 +759,18 @@ class _SubscriptionSetupScreenState
                         'Please add a delivery address in your profile to proceed.',
                         style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
-                      const SizedBox(height: 12),
-                      ElevatedButton.icon(
-                        onPressed: () {
-                          _showAddressEditDialog();
-                        },
-                        icon: const Icon(Icons.add),
-                        label: const Text('Add Address'),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: AppColors.darkGreen,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
+                      // const SizedBox(height: 12),
+                      // ElevatedButton.icon(
+                      //   onPressed: () {
+                      //     _showAddressEditDialog();
+                      //   },
+                      //   icon: const Icon(Icons.add),
+                      //   label: const Text('Add Address'),
+                      //   style: ElevatedButton.styleFrom(
+                      //     backgroundColor: AppColors.darkGreen,
+                      //     foregroundColor: Colors.white,
+                      //   ),
+                      // ),
                     ],
                   ),
                 ),
@@ -728,56 +781,168 @@ class _SubscriptionSetupScreenState
     );
   }
 
-  void _showAddressEditDialog() {
+  void _showAddressEditDialog(AddressFormState? locationdata) {
+    // Initialize form controller with location data
+    if (locationdata != null) {
+      final formCtrl = ref.read(addressFormProvider);
+      formCtrl.loadAddress(AddressModel(
+        id: '',
+        name: locationdata.name,
+        email: locationdata.email,
+        phone: locationdata.phone,
+        street: locationdata.street,
+        apartment: locationdata.apartment,
+        city: locationdata.city,
+        state: locationdata.state,
+        zip: locationdata.zip,
+        country: locationdata.country,
+        deliveryInstructions: locationdata.instructions.isEmpty ? null : locationdata.instructions,
+      ));
+    }
+
+    final _dialogFormKey = GlobalKey<FormState>();
+
     showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('Edit Delivery Address'),
-        content: SingleChildScrollView(
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        child: Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(ctx).size.height * 0.9,
+            maxWidth: MediaQuery.of(ctx).size.width * 0.95,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(
-                controller: _addressController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Complete Address',
-                  hintText: 'Enter your complete delivery address',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+              // Header
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: AppColors.darkGreen,
+                  borderRadius: const BorderRadius.only(
+                    topLeft: Radius.circular(16),
+                    topRight: Radius.circular(16),
                   ),
+                ),
+                child: const Row(
+                  children: [
+                    Icon(Icons.location_on, color: Colors.white, size: 28),
+                    SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Delivery Address',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            'Enter your delivery address',
+                            style: TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 12),
-              TextField(
-                controller: _instructionsController,
-                decoration: InputDecoration(
-                  labelText: 'Delivery Instructions',
-                  hintText: 'E.g., Ring the bell twice, Call on arrival',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(8),
+              // Content
+              Flexible(
+                fit: FlexFit.loose,
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(20),
+                  child: Consumer(builder: (ctx, ref2, _) {
+                    return AddressFormFields(
+                      includePersonalInfo: false,
+                      formKey: _dialogFormKey,
+                    );
+                  }),
+                ),
+              ),
+              // Action Buttons
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  border: Border(
+                    top: BorderSide(color: Colors.grey[200]!),
                   ),
                 ),
+                child: Consumer(builder: (ctx, ref2, _) {
+                  return Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            side: BorderSide(color: Colors.grey[300]!),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.black87,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () {
+                            if (_dialogFormKey.currentState!.validate()) {
+                              final address = ref2.read(addressFormProvider).buildAddressModel();
+                              ref2.read(addressProvider).addAddress(address);
+                              Navigator.pop(ctx);
+                              Fluttertoast.showToast(
+                                msg: "Address saved successfully",
+                                backgroundColor: AppColors.darkGreen,
+                                textColor: AppColors.white,
+                                gravity: ToastGravity.BOTTOM,
+                              );
+                            }
+                            
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppColors.darkGreen,
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                          ),
+                          child: const Text(
+                            'Save Address',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  );
+                }),
               ),
             ],
           ),
         ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              // Update the controllers if needed
-              Navigator.pop(ctx);
-            },
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.darkGreen,
-            ),
-            child: const Text('Save'),
-          ),
-        ],
       ),
     );
   }
@@ -851,37 +1016,6 @@ class _SubscriptionSetupScreenState
       ),
     );
   }
-
-  String _getPatternTitle(DeliveryPattern pattern) {
-    switch (pattern) {
-      case DeliveryPattern.daily:
-        return 'Daily Delivery';
-      case DeliveryPattern.alternate:
-        return 'Alternate Day';
-      case DeliveryPattern.weekly:
-        return 'Weekly Schedule';
-      case DeliveryPattern.monthly:
-        return 'Monthly Delivery';
-      case DeliveryPattern.custom:
-        return 'Custom Schedule';
-    }
-  }
-
-  String _getPatternDescription(DeliveryPattern pattern) {
-    switch (pattern) {
-      case DeliveryPattern.daily:
-        return 'Delivery every day';
-      case DeliveryPattern.alternate:
-        return 'Delivery every 2 days';
-      case DeliveryPattern.weekly:
-        return 'Choose specific days of the week';
-      case DeliveryPattern.monthly:
-        return 'Once every month';
-      case DeliveryPattern.custom:
-        return 'Create your own delivery schedule';
-    }
-  }
-
   double _calculateTotalPrice() {
     final service = ref.read(subscriptionServiceProvider);
     final endDate = startDate.add(
@@ -993,33 +1127,89 @@ class _SubscriptionSetupScreenState
   }
 
   void _continueToCheckout() {
-    if (_addressController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please enter delivery address'),
-          backgroundColor: Colors.red,
-        ),
+    // Check if we have a valid address from either source
+    final addrCtrl = ref.read(addressProvider);
+    final savedAddress = addrCtrl.address;
+    final locationaddress = ref.read(locationProvider);
+    final isUsingLocation =
+      addrCtrl.address == null && locationaddress.detailedAddress != null;
+    final locationdata = locationaddress.detailedAddress;
+
+    // Build address string - prefer saved address, then location data, then manual entry
+    String deliveryAddress = '';
+    if (savedAddress != null) {
+      deliveryAddress = [
+        savedAddress.street,
+        savedAddress.apartment,
+        savedAddress.city,
+        savedAddress.state,
+        savedAddress.zip,
+        savedAddress.country,
+      ].where((s) => s.isNotEmpty).join(', ');
+    } else if (isUsingLocation && locationdata != null) {
+      deliveryAddress = locationdata.fullAddress.isEmpty 
+          ? [
+              locationdata.street,
+              locationdata.city,
+              locationdata.state,
+              locationdata.zip,
+              locationdata.country,
+            ].where((s) => s.isNotEmpty).join(', ')
+          : locationdata.fullAddress;
+    } else {
+      // Try to get address from form controller
+      final formCtrl = ref.read(addressFormProvider);
+      if (formCtrl.fullAddress.isNotEmpty) {
+        deliveryAddress = formCtrl.fullAddress;
+      }
+    }
+
+    // Validate that we have an address
+    if (deliveryAddress.isEmpty) {
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Please enter delivery address'),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
+      Fluttertoast.showToast(
+        msg: "Please enter delivery address",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.BOTTOM,
       );
       return;
     }
 
     if (selectedPattern == DeliveryPattern.weekly &&
         selectedWeeklyDays.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please select at least one delivery day'),
-          backgroundColor: Colors.red,
-        ),
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Please select at least one delivery day'),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
+      Fluttertoast.showToast(
+        msg: "Please select at least one delivery day",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.BOTTOM,
       );
       return;
     }
 
     if (selectedPattern == DeliveryPattern.custom && customDates.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Please add at least one custom delivery date'),
-          backgroundColor: Colors.red,
-        ),
+      // ScaffoldMessenger.of(context).showSnackBar(
+      //   const SnackBar(
+      //     content: Text('Please add at least one custom delivery date'),
+      //     backgroundColor: Colors.red,
+      //   ),
+      // );
+      Fluttertoast.showToast(
+        msg: "Please add at least one custom delivery date",
+        backgroundColor: Colors.red,
+        textColor: Colors.white,
+        gravity: ToastGravity.BOTTOM,
       );
       return;
     }
@@ -1036,8 +1226,8 @@ class _SubscriptionSetupScreenState
           defaultQuantity: defaultQuantity,
           weeklyDays: selectedWeeklyDays,
           customDates: customDates,
-          deliveryAddress: _addressController.text.trim(),
-          deliveryInstructions: _instructionsController.text.trim(),
+          deliveryAddress: deliveryAddress,
+          deliveryInstructions: ref.read(addressFormProvider).instructions,
         ),
       ),
     );

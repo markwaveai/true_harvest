@@ -1,15 +1,29 @@
+import 'package:task_new/models/address_form_state.dart';
+
 class LocationState {
   final bool isLoading;
   final String location;
   final String? error;
+  final AddressFormState? detailedAddress;
 
-  LocationState({this.isLoading = false, this.location = '', this.error});
+  LocationState({
+    this.isLoading = false,
+    this.location = '',
+    this.error,
+    this.detailedAddress,
+  });
 
-  LocationState copyWith({bool? isLoading, String? location, String? error}) {
+  LocationState copyWith({
+    bool? isLoading,
+    String? location,
+    String? error,
+    AddressFormState? detailedAddress,
+  }) {
     return LocationState(
       isLoading: isLoading ?? this.isLoading,
       location: location ?? this.location,
       error: error,
+      detailedAddress: detailedAddress ?? this.detailedAddress,
     );
   }
 }
