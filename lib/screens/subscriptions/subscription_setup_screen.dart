@@ -5,10 +5,12 @@ import 'package:task_new/controllers/location_provider.dart';
 import 'package:task_new/controllers/subscription_controller.dart';
 import 'package:task_new/controllers/address_controller.dart';
 import 'package:task_new/controllers/address_form_controller.dart';
+import 'package:task_new/controllers/subscription_service.dart';
 import 'package:task_new/models/advanced_subscription_model.dart';
 import 'package:task_new/models/product_model.dart';
 import 'package:task_new/models/address_model.dart';
 import 'package:task_new/models/address_form_state.dart';
+import 'package:task_new/models/subscription_plan_template.dart';
 import 'package:task_new/utils/app_colors.dart';
 import 'package:task_new/screens/subscriptions/subscription_checkout_screen.dart';
 import 'package:task_new/widgets/address_form_fields.dart';
@@ -659,26 +661,23 @@ class _SubscriptionSetupScreenState
                               const SizedBox(width: 8),
                               Expanded(
                                 child: RichText(
-  text: TextSpan(
-    style: const TextStyle(
-      fontSize: 13,
-      color: Colors.black,
-    ),
-    children: [
-      const TextSpan(
-        text: 'Instructions: ',
-      ),
-      TextSpan(
-        text: savedAddress.deliveryInstructions,
-        style: const TextStyle(
-          fontWeight: FontWeight.bold,   
-          color: Colors.black,          
-        ),
-      ),
-    ],
-  ),
-)
-
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontSize: 13,
+                                      color: Colors.black,
+                                    ),
+                                    children: [
+                                      const TextSpan(text: 'Instructions: '),
+                                      TextSpan(
+                                        text: savedAddress.deliveryInstructions,
+                                        style: const TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.black,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
                               ),
                             ],
                           ),
@@ -753,18 +752,12 @@ class _SubscriptionSetupScreenState
                     children: [
                       Text(
                         'No saved address found.',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                       const SizedBox(height: 8),
                       Text(
                         'Please add a delivery address in your profile to proceed.',
-                        style: TextStyle(
-                          fontSize: 13,
-                          color: Colors.grey[500],
-                        ),
+                        style: TextStyle(fontSize: 13, color: Colors.grey[500]),
                       ),
                       // const SizedBox(height: 12),
                       // ElevatedButton.icon(
@@ -1024,7 +1017,7 @@ class _SubscriptionSetupScreenState
     );
   }
   double _calculateTotalPrice() {
-    final service = ref.read(advancedSubscriptionServiceProvider);
+    final service = ref.read(subscriptionServiceProvider);
     final endDate = startDate.add(
       Duration(days: widget.selectedPlan.durationInDays),
     );

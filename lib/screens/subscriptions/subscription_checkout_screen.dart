@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:task_new/controllers/subscription_controller.dart';
+import 'package:task_new/controllers/subscription_service.dart';
 import 'package:task_new/models/advanced_subscription_model.dart';
 import 'package:task_new/models/product_model.dart';
+import 'package:task_new/models/subscription_plan_template.dart';
 import 'package:task_new/utils/app_colors.dart';
 import 'package:task_new/screens/subscriptions/subscription_success_screen.dart';
 
@@ -19,7 +21,7 @@ class SubscriptionCheckoutScreen extends ConsumerStatefulWidget {
   final String deliveryInstructions;
 
   const SubscriptionCheckoutScreen({
-    Key? key,
+    super.key,
     required this.product,
     required this.selectedUnit,
     required this.selectedPlan,
@@ -30,7 +32,7 @@ class SubscriptionCheckoutScreen extends ConsumerStatefulWidget {
     required this.customDates,
     required this.deliveryAddress,
     required this.deliveryInstructions,
-  }) : super(key: key);
+  });
 
   @override
   ConsumerState<SubscriptionCheckoutScreen> createState() =>
@@ -684,7 +686,7 @@ class _SubscriptionCheckoutScreenState
   }
 
   double _calculateTotalPrice() {
-    final service = ref.read(advancedSubscriptionServiceProvider);
+    final service = ref.read(subscriptionServiceProvider);
     final endDate = widget.startDate.add(
       Duration(days: widget.selectedPlan.durationInDays),
     );
@@ -711,7 +713,7 @@ class _SubscriptionCheckoutScreenState
     setState(() => isProcessing = true);
 
     try {
-      final service = ref.read(advancedSubscriptionServiceProvider);
+      final service = ref.read(subscriptionServiceProvider);
 
       // Create subscription
       final subscriptionId = await service.createSubscription(

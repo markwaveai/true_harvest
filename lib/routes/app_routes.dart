@@ -8,7 +8,7 @@ import 'package:task_new/screens/main_screen.dart';
 import 'package:task_new/screens/onboarding/splash_screen.dart';
 import 'package:task_new/screens/product_details_view.dart';
 import 'package:task_new/screens/profile_screen.dart';
-import 'package:task_new/screens/delivery_schedule_screen.dart';
+import 'package:task_new/screens/subscriptions/delivery_schedule_screen.dart';
 import 'package:task_new/screens/checkout_screen.dart';
 import 'package:task_new/screens/payment_success_screen.dart';
 import 'package:task_new/screens/subscriptions/subscription_home_screen.dart';
@@ -111,11 +111,11 @@ class AppRoutes {
           settings: settings,
         );
 
-      case deliverySchedule:
-        return MaterialPageRoute(
-          builder: (_) => const DeliveryScheduleScreen(),
-          settings: settings,
-        );
+      // case deliverySchedule:
+      //   return MaterialPageRoute(
+      //     builder: (_) => const DeliveryScheduleScreen(),
+      //     settings: settings,
+      //   );
 
       case wishlist:
         return MaterialPageRoute(

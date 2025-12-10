@@ -1,26 +1,45 @@
 import 'package:flutter/foundation.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/legacy.dart';
 import 'package:task_new/models/advanced_subscription_model.dart';
 import 'package:task_new/models/product_model.dart';
+import 'package:task_new/models/subscription_plan_template.dart';
 
-class SubscriptionService extends ChangeNotifier {
+// Advanced subscription service provider
+final subscriptionServiceProvider =
+    ChangeNotifierProvider<SubscriptionController>((ref) {
+      return SubscriptionController();
+    });
+final subscriptionPlansProvider = Provider<List<SubscriptionPlanTemplate>>((
+  ref,
+) {
+  return SubscriptionPlanTemplate.getDefaultPlans();
+});
+
+class SubscriptionController extends ChangeNotifier {
   final List<AdvancedSubscription> _subscriptions = [];
   final List<DeliveryScheduleItem> _deliverySchedule = [];
 
-  List<AdvancedSubscription> get subscriptions => List.unmodifiable(_subscriptions);
-  List<AdvancedSubscription> get activeSubscriptions => 
+  List<AdvancedSubscription> get subscriptions =>
+      List.unmodifiable(_subscriptions);
+  List<AdvancedSubscription> get activeSubscriptions =>
       _subscriptions.where((s) => s.isActive).toList();
-  List<AdvancedSubscription> get pausedSubscriptions => 
+  List<AdvancedSubscription> get pausedSubscriptions =>
       _subscriptions.where((s) => s.isPaused).toList();
 
-  List<DeliveryScheduleItem> get deliverySchedule => List.unmodifiable(_deliverySchedule);
+  List<DeliveryScheduleItem> get deliverySchedule =>
+      List.unmodifiable(_deliverySchedule);
   List<DeliveryScheduleItem> get todayDeliveries {
     final today = DateTime.now();
-    return _deliverySchedule.where((item) => 
-        item.date.year == today.year &&
-        item.date.month == today.month &&
-        item.date.day == today.day &&
-        item.isScheduled
-    ).toList();
+    return _deliverySchedule
+        .where(
+          (item) =>
+              item.date.year == today.year &&
+              item.date.month == today.month &&
+              item.date.day == today.day &&
+              item.isScheduled,
+        )
+        .toList();
   }
 
   // Create a new subscription
@@ -43,15 +62,23 @@ class SubscriptionService extends ChangeNotifier {
       final subscriptionId = _generateSubscriptionId();
       final planTemplate = SubscriptionPlanTemplate.getDefaultPlans()
           .firstWhere((plan) => plan.planType == planType);
-      
-      final endDate = startDate.add(Duration(days: planTemplate.durationInDays));
+
+      final endDate = startDate.add(
+        Duration(days: planTemplate.durationInDays),
+      );
       final pricePerUnit = _getPricePerUnit(product, unit);
       final totalDeliveries = _calculateTotalDeliveries(
-        startDate, endDate, deliveryPattern, weeklyDays, customDates, defaultQty
+        startDate,
+        endDate,
+        deliveryPattern,
+        weeklyDays,
+        customDates,
+        defaultQty,
       );
-      
+
       final originalAmount = totalDeliveries * pricePerUnit;
-      final discountAmount = originalAmount * (planTemplate.discountPercentage / 100);
+      final discountAmount =
+          originalAmount * (planTemplate.discountPercentage / 100);
       final totalAmount = originalAmount - discountAmount;
 
       final subscription = AdvancedSubscription(
@@ -78,10 +105,10 @@ class SubscriptionService extends ChangeNotifier {
       );
 
       _subscriptions.add(subscription);
-      
+
       // Generate delivery schedule
       await _generateDeliverySchedule(subscription);
-      
+
       notifyListeners();
       return subscriptionId;
     } catch (e) {
@@ -90,9 +117,14 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   // Pause subscription
-  Future<void> pauseSubscription(String subscriptionId, List<DateTime> pauseDates) async {
+  Future<void> pauseSubscription(
+    String subscriptionId,
+    List<DateTime> pauseDates,
+  ) async {
     try {
-      final index = _subscriptions.indexWhere((s) => s.subscriptionId == subscriptionId);
+      final index = _subscriptions.indexWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
       if (index == -1) throw Exception('Subscription not found');
 
       final subscription = _subscriptions[index];
@@ -103,10 +135,10 @@ class SubscriptionService extends ChangeNotifier {
       );
 
       _subscriptions[index] = updatedSubscription;
-      
+
       // Update delivery schedule
       await _updateDeliveryScheduleForPause(subscriptionId, pauseDates);
-      
+
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to pause subscription: $e');
@@ -116,7 +148,9 @@ class SubscriptionService extends ChangeNotifier {
   // Resume subscription
   Future<void> resumeSubscription(String subscriptionId) async {
     try {
-      final index = _subscriptions.indexWhere((s) => s.subscriptionId == subscriptionId);
+      final index = _subscriptions.indexWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
       if (index == -1) throw Exception('Subscription not found');
 
       final subscription = _subscriptions[index];
@@ -126,10 +160,10 @@ class SubscriptionService extends ChangeNotifier {
       );
 
       _subscriptions[index] = updatedSubscription;
-      
+
       // Regenerate delivery schedule from resume date
       await _generateDeliverySchedule(updatedSubscription);
-      
+
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to resume subscription: $e');
@@ -139,7 +173,9 @@ class SubscriptionService extends ChangeNotifier {
   // Cancel subscription
   Future<void> cancelSubscription(String subscriptionId) async {
     try {
-      final index = _subscriptions.indexWhere((s) => s.subscriptionId == subscriptionId);
+      final index = _subscriptions.indexWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
       if (index == -1) throw Exception('Subscription not found');
 
       final subscription = _subscriptions[index];
@@ -148,10 +184,10 @@ class SubscriptionService extends ChangeNotifier {
       );
 
       _subscriptions[index] = updatedSubscription;
-      
+
       // Cancel future deliveries
       await _cancelFutureDeliveries(subscriptionId);
-      
+
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to cancel subscription: $e');
@@ -159,19 +195,26 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   // Update subscription quantity
-  Future<void> updateSubscriptionQuantity(String subscriptionId, int newQuantity) async {
+  Future<void> updateSubscriptionQuantity(
+    String subscriptionId,
+    int newQuantity,
+  ) async {
     try {
-      final index = _subscriptions.indexWhere((s) => s.subscriptionId == subscriptionId);
+      final index = _subscriptions.indexWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
       if (index == -1) throw Exception('Subscription not found');
 
       final subscription = _subscriptions[index];
-      final updatedSubscription = subscription.copyWith(defaultQty: newQuantity);
+      final updatedSubscription = subscription.copyWith(
+        defaultQty: newQuantity,
+      );
 
       _subscriptions[index] = updatedSubscription;
-      
+
       // Update future delivery schedule
       await _updateDeliveryScheduleQuantity(subscriptionId, newQuantity);
-      
+
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to update subscription quantity: $e');
@@ -179,12 +222,18 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   // Mark delivery as completed
-  Future<void> markDeliveryCompleted(String subscriptionId, DateTime deliveryDate, {String? notes}) async {
+  Future<void> markDeliveryCompleted(
+    String subscriptionId,
+    DateTime deliveryDate, {
+    String? notes,
+  }) async {
     try {
-      final deliveryIndex = _deliverySchedule.indexWhere((item) => 
-          item.subscriptionId == subscriptionId && 
-          _isSameDay(item.date, deliveryDate));
-      
+      final deliveryIndex = _deliverySchedule.indexWhere(
+        (item) =>
+            item.subscriptionId == subscriptionId &&
+            _isSameDay(item.date, deliveryDate),
+      );
+
       if (deliveryIndex == -1) throw Exception('Delivery not found');
 
       final delivery = _deliverySchedule[deliveryIndex];
@@ -197,7 +246,9 @@ class SubscriptionService extends ChangeNotifier {
       _deliverySchedule[deliveryIndex] = updatedDelivery;
 
       // Update remaining deliveries count
-      final subscriptionIndex = _subscriptions.indexWhere((s) => s.subscriptionId == subscriptionId);
+      final subscriptionIndex = _subscriptions.indexWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
       if (subscriptionIndex != -1) {
         final subscription = _subscriptions[subscriptionIndex];
         final updatedSubscription = subscription.copyWith(
@@ -205,7 +256,7 @@ class SubscriptionService extends ChangeNotifier {
         );
         _subscriptions[subscriptionIndex] = updatedSubscription;
       }
-      
+
       notifyListeners();
     } catch (e) {
       throw Exception('Failed to mark delivery as completed: $e');
@@ -215,7 +266,9 @@ class SubscriptionService extends ChangeNotifier {
   // Get subscription by ID
   AdvancedSubscription? getSubscriptionById(String subscriptionId) {
     try {
-      return _subscriptions.firstWhere((s) => s.subscriptionId == subscriptionId);
+      return _subscriptions.firstWhere(
+        (s) => s.subscriptionId == subscriptionId,
+      );
     } catch (e) {
       return null;
     }
@@ -227,11 +280,17 @@ class SubscriptionService extends ChangeNotifier {
   }
 
   // Get delivery schedule for date range
-  List<DeliveryScheduleItem> getDeliveryScheduleForDateRange(DateTime from, DateTime to) {
-    return _deliverySchedule.where((item) => 
-        item.date.isAfter(from.subtract(const Duration(days: 1))) &&
-        item.date.isBefore(to.add(const Duration(days: 1)))
-    ).toList();
+  List<DeliveryScheduleItem> getDeliveryScheduleForDateRange(
+    DateTime from,
+    DateTime to,
+  ) {
+    return _deliverySchedule
+        .where(
+          (item) =>
+              item.date.isAfter(from.subtract(const Duration(days: 1))) &&
+              item.date.isBefore(to.add(const Duration(days: 1))),
+        )
+        .toList();
   }
 
   // Calculate subscription price
@@ -248,15 +307,22 @@ class SubscriptionService extends ChangeNotifier {
   }) {
     final pricePerUnit = _getPricePerUnit(product, unit);
     final totalDeliveries = _calculateTotalDeliveries(
-      startDate, endDate, deliveryPattern, weeklyDays, customDates, defaultQty
+      startDate,
+      endDate,
+      deliveryPattern,
+      weeklyDays,
+      customDates,
+      defaultQty,
     );
-    
-    final planTemplate = SubscriptionPlanTemplate.getDefaultPlans()
-        .firstWhere((plan) => plan.planType == planType);
-    
+
+    final planTemplate = SubscriptionPlanTemplate.getDefaultPlans().firstWhere(
+      (plan) => plan.planType == planType,
+    );
+
     final originalAmount = totalDeliveries * pricePerUnit;
-    final discountAmount = originalAmount * (planTemplate.discountPercentage / 100);
-    
+    final discountAmount =
+        originalAmount * (planTemplate.discountPercentage / 100);
+
     return originalAmount - discountAmount;
   }
 
@@ -284,45 +350,55 @@ class SubscriptionService extends ChangeNotifier {
     switch (pattern) {
       case DeliveryPattern.daily:
         return endDate.difference(startDate).inDays * defaultQty;
-      
+
       case DeliveryPattern.alternate:
         return (endDate.difference(startDate).inDays / 2).ceil() * defaultQty;
-      
+
       case DeliveryPattern.weekly:
         final weeksInPeriod = (endDate.difference(startDate).inDays / 7).ceil();
         return weeksInPeriod * weeklyDays.length * defaultQty;
-      
+
       case DeliveryPattern.monthly:
-        final monthsInPeriod = (endDate.difference(startDate).inDays / 30).ceil();
+        final monthsInPeriod = (endDate.difference(startDate).inDays / 30)
+            .ceil();
         return monthsInPeriod * defaultQty;
-      
+
       case DeliveryPattern.custom:
         return customDates.fold(0, (sum, cd) => sum + cd.quantity);
-      
+
       default:
         return 0;
     }
   }
 
-  Future<void> _generateDeliverySchedule(AdvancedSubscription subscription) async {
+  Future<void> _generateDeliverySchedule(
+    AdvancedSubscription subscription,
+  ) async {
     // Remove existing schedule for this subscription
-    _deliverySchedule.removeWhere((item) => item.subscriptionId == subscription.subscriptionId);
-    
+    _deliverySchedule.removeWhere(
+      (item) => item.subscriptionId == subscription.subscriptionId,
+    );
+
     // Generate new schedule
     final schedule = subscription.generateDeliverySchedule(
       subscription.startDate,
       subscription.endDate,
     );
-    
+
     _deliverySchedule.addAll(schedule);
   }
 
-  Future<void> _updateDeliveryScheduleForPause(String subscriptionId, List<DateTime> pauseDates) async {
+  Future<void> _updateDeliveryScheduleForPause(
+    String subscriptionId,
+    List<DateTime> pauseDates,
+  ) async {
     for (final pauseDate in pauseDates) {
-      final deliveryIndex = _deliverySchedule.indexWhere((item) => 
-          item.subscriptionId == subscriptionId && 
-          _isSameDay(item.date, pauseDate));
-      
+      final deliveryIndex = _deliverySchedule.indexWhere(
+        (item) =>
+            item.subscriptionId == subscriptionId &&
+            _isSameDay(item.date, pauseDate),
+      );
+
       if (deliveryIndex != -1) {
         final delivery = _deliverySchedule[deliveryIndex];
         final updatedDelivery = delivery.copyWith(status: 'cancelled');
@@ -335,20 +411,23 @@ class SubscriptionService extends ChangeNotifier {
     final today = DateTime.now();
     for (int i = 0; i < _deliverySchedule.length; i++) {
       final delivery = _deliverySchedule[i];
-      if (delivery.subscriptionId == subscriptionId && 
-          delivery.date.isAfter(today) && 
+      if (delivery.subscriptionId == subscriptionId &&
+          delivery.date.isAfter(today) &&
           delivery.isScheduled) {
         _deliverySchedule[i] = delivery.copyWith(status: 'cancelled');
       }
     }
   }
 
-  Future<void> _updateDeliveryScheduleQuantity(String subscriptionId, int newQuantity) async {
+  Future<void> _updateDeliveryScheduleQuantity(
+    String subscriptionId,
+    int newQuantity,
+  ) async {
     final today = DateTime.now();
     for (int i = 0; i < _deliverySchedule.length; i++) {
       final delivery = _deliverySchedule[i];
-      if (delivery.subscriptionId == subscriptionId && 
-          delivery.date.isAfter(today) && 
+      if (delivery.subscriptionId == subscriptionId &&
+          delivery.date.isAfter(today) &&
           delivery.isScheduled) {
         _deliverySchedule[i] = delivery.copyWith(quantity: newQuantity);
       }
@@ -357,8 +436,8 @@ class SubscriptionService extends ChangeNotifier {
 
   bool _isSameDay(DateTime date1, DateTime date2) {
     return date1.year == date2.year &&
-           date1.month == date2.month &&
-           date1.day == date2.day;
+        date1.month == date2.month &&
+        date1.day == date2.day;
   }
 
   // Get subscription statistics
@@ -367,11 +446,12 @@ class SubscriptionService extends ChangeNotifier {
     final activeCount = userSubscriptions.where((s) => s.isActive).length;
     final pausedCount = userSubscriptions.where((s) => s.isPaused).length;
     final completedCount = userSubscriptions.where((s) => s.isCompleted).length;
-    
+
     final totalSavings = userSubscriptions.fold(0.0, (sum, sub) {
       final planTemplate = SubscriptionPlanTemplate.getDefaultPlans()
           .firstWhere((plan) => plan.planType == sub.planType);
-      final originalAmount = sub.totalAmount / (1 - planTemplate.discountPercentage / 100);
+      final originalAmount =
+          sub.totalAmount / (1 - planTemplate.discountPercentage / 100);
       return sum + (originalAmount - sub.totalAmount);
     });
 

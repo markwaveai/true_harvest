@@ -1,26 +1,29 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:task_new/controllers/subscription_controller.dart';
+import 'package:task_new/controllers/subscription_service.dart';
 import 'package:task_new/models/advanced_subscription_model.dart';
 import 'package:task_new/utils/app_colors.dart';
 
 class SubscriptionDetailsScreen extends ConsumerStatefulWidget {
   final String subscriptionId;
 
-  const SubscriptionDetailsScreen({
-    Key? key,
-    required this.subscriptionId,
-  }) : super(key: key);
+  const SubscriptionDetailsScreen({Key? key, required this.subscriptionId})
+    : super(key: key);
 
   @override
-  ConsumerState<SubscriptionDetailsScreen> createState() => _SubscriptionDetailsScreenState();
+  ConsumerState<SubscriptionDetailsScreen> createState() =>
+      _SubscriptionDetailsScreenState();
 }
 
-class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsScreen> {
+class _SubscriptionDetailsScreenState
+    extends ConsumerState<SubscriptionDetailsScreen> {
   @override
   Widget build(BuildContext context) {
-    final subscriptionService = ref.watch(advancedSubscriptionServiceProvider);
-    final subscription = subscriptionService.getSubscriptionById(widget.subscriptionId);
+    final subscriptionService = ref.watch(subscriptionServiceProvider);
+    final subscription = subscriptionService.getSubscriptionById(
+      widget.subscriptionId,
+    );
 
     if (subscription == null) {
       return Scaffold(
@@ -30,9 +33,7 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
           elevation: 0,
           foregroundColor: Colors.black87,
         ),
-        body: const Center(
-          child: Text('Subscription not found'),
-        ),
+        body: const Center(child: Text('Subscription not found')),
       );
     }
 
@@ -86,7 +87,10 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
                   children: [
                     Icon(Icons.cancel_outlined, color: Colors.red),
                     SizedBox(width: 8),
-                    Text('Cancel Subscription', style: TextStyle(color: Colors.red)),
+                    Text(
+                      'Cancel Subscription',
+                      style: TextStyle(color: Colors.red),
+                    ),
                   ],
                 ),
               ),
@@ -169,20 +173,26 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
                     ),
                     Text(
                       '${subscription.unit} • ${subscription.planType.toString().split('.').last.toUpperCase()}',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[600],
-                      ),
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                     ),
                     const SizedBox(height: 4),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 2,
+                      ),
                       decoration: BoxDecoration(
-                        color: _getStatusColor(subscription.status).withOpacity(0.1),
+                        color: _getStatusColor(
+                          subscription.status,
+                        ).withOpacity(0.1),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: Text(
-                        subscription.status.toString().split('.').last.toUpperCase(),
+                        subscription.status
+                            .toString()
+                            .split('.')
+                            .last
+                            .toUpperCase(),
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -232,18 +242,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
           const SizedBox(height: 4),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-            ),
+            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
-          Text(
-            label,
-            style: TextStyle(
-              fontSize: 12,
-              color: Colors.grey[600],
-            ),
-          ),
+          Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
       ),
     );
@@ -268,13 +269,10 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
         children: [
           const Text(
             'Progress',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          
+
           // Progress Bar
           LinearProgressIndicator(
             value: subscription.completionPercentage / 100,
@@ -291,16 +289,13 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
               ),
               Text(
                 '${subscription.daysRemaining} days left',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey[600],
-                ),
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
               ),
             ],
           ),
-          
+
           const SizedBox(height: 16),
-          
+
           // Next Delivery Info
           if (subscription.nextDeliveryDate != null) ...[
             Container(
@@ -331,10 +326,13 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
   }
 
   Widget _buildDeliverySchedule(AdvancedSubscription subscription) {
-    final upcomingDeliveries = subscription.generateDeliverySchedule(
-      DateTime.now(),
-      DateTime.now().add(const Duration(days: 14)),
-    ).take(5).toList();
+    final upcomingDeliveries = subscription
+        .generateDeliverySchedule(
+          DateTime.now(),
+          DateTime.now().add(const Duration(days: 14)),
+        )
+        .take(5)
+        .toList();
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -354,10 +352,7 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
         children: [
           const Text(
             'Upcoming Deliveries',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (upcomingDeliveries.isEmpty)
@@ -371,39 +366,38 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
               ),
             )
           else
-            ...upcomingDeliveries.map((delivery) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: AppColors.lightBackground,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today,
-                    color: AppColors.darkGreen,
-                    size: 16,
-                  ),
-                  const SizedBox(width: 8),
-                  Text(
-                    '${delivery.date.day}/${delivery.date.month}/${delivery.date.year}',
-                    style: const TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
+            ...upcomingDeliveries.map(
+              (delivery) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: AppColors.lightBackground,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.calendar_today,
+                      color: AppColors.darkGreen,
+                      size: 16,
                     ),
-                  ),
-                  const Spacer(),
-                  Text(
-                    '${delivery.quantity} ${delivery.unit}',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
+                    const SizedBox(width: 8),
+                    Text(
+                      '${delivery.date.day}/${delivery.date.month}/${delivery.date.year}',
+                      style: const TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
-                  ),
-                ],
+                    const Spacer(),
+                    Text(
+                      '${delivery.quantity} ${delivery.unit}',
+                      style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                    ),
+                  ],
+                ),
               ),
-            )),
+            ),
         ],
       ),
     );
@@ -428,20 +422,38 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
         children: [
           const Text(
             'Subscription Details',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
-          _buildDetailRow('Subscription ID', '#${widget.subscriptionId.substring(widget.subscriptionId.length - 8).toUpperCase()}'),
-          _buildDetailRow('Start Date', '${subscription.startDate.day}/${subscription.startDate.month}/${subscription.startDate.year}'),
-          _buildDetailRow('End Date', '${subscription.endDate.day}/${subscription.endDate.month}/${subscription.endDate.year}'),
-          _buildDetailRow('Delivery Pattern', _getDeliveryPatternText(subscription.deliveryPattern)),
-          _buildDetailRow('Quantity per Delivery', '${subscription.defaultQty} ${subscription.unit}'),
-          _buildDetailRow('Payment Mode', subscription.paymentMode.toString().split('.').last.toUpperCase()),
+          _buildDetailRow(
+            'Subscription ID',
+            '#${widget.subscriptionId.substring(widget.subscriptionId.length - 8).toUpperCase()}',
+          ),
+          _buildDetailRow(
+            'Start Date',
+            '${subscription.startDate.day}/${subscription.startDate.month}/${subscription.startDate.year}',
+          ),
+          _buildDetailRow(
+            'End Date',
+            '${subscription.endDate.day}/${subscription.endDate.month}/${subscription.endDate.year}',
+          ),
+          _buildDetailRow(
+            'Delivery Pattern',
+            _getDeliveryPatternText(subscription.deliveryPattern),
+          ),
+          _buildDetailRow(
+            'Quantity per Delivery',
+            '${subscription.defaultQty} ${subscription.unit}',
+          ),
+          _buildDetailRow(
+            'Payment Mode',
+            subscription.paymentMode.toString().split('.').last.toUpperCase(),
+          ),
           if (subscription.weeklyDays.isNotEmpty)
-            _buildDetailRow('Delivery Days', subscription.weeklyDays.join(', ')),
+            _buildDetailRow(
+              'Delivery Days',
+              subscription.weeklyDays.join(', '),
+            ),
           const SizedBox(height: 8),
           const Divider(),
           const SizedBox(height: 8),
@@ -467,10 +479,7 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
                 Expanded(
                   child: Text(
                     subscription.deliveryInstructions!,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                 ),
               ],
@@ -491,19 +500,13 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
             width: 120,
             child: Text(
               label,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
           ),
           Expanded(
             child: Text(
               value,
-              style: const TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-              ),
+              style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500),
             ),
           ),
         ],
@@ -512,11 +515,13 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
   }
 
   Widget _buildRecentDeliveries(AdvancedSubscription subscription) {
-    final subscriptionService = ref.watch(advancedSubscriptionServiceProvider);
+    final subscriptionService = ref.watch(subscriptionServiceProvider);
     final recentDeliveries = subscriptionService.deliverySchedule
-        .where((delivery) => 
-            delivery.subscriptionId == subscription.subscriptionId &&
-            delivery.isDelivered)
+        .where(
+          (delivery) =>
+              delivery.subscriptionId == subscription.subscriptionId &&
+              delivery.isDelivered,
+        )
         .take(5)
         .toList();
 
@@ -538,10 +543,7 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
         children: [
           const Text(
             'Recent Deliveries',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
           if (recentDeliveries.isEmpty)
@@ -555,55 +557,57 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
               ),
             )
           else
-            ...recentDeliveries.map((delivery) => Container(
-              margin: const EdgeInsets.only(bottom: 8),
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green[200]!),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.check_circle,
-                    color: Colors.green[600],
-                    size: 20,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '${delivery.date.day}/${delivery.date.month}/${delivery.date.year}',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        Text(
-                          '${delivery.quantity} ${delivery.unit} delivered',
-                          style: TextStyle(
-                            fontSize: 12,
-                            color: Colors.grey[600],
-                          ),
-                        ),
-                      ],
+            ...recentDeliveries.map(
+              (delivery) => Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green[50],
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green[200]!),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.check_circle,
+                      color: Colors.green[600],
+                      size: 20,
                     ),
-                  ),
-                  if (delivery.deliveredAt != null)
-                    Text(
-                      'Delivered',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: Colors.green[700],
-                        fontWeight: FontWeight.w600,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${delivery.date.day}/${delivery.date.month}/${delivery.date.year}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          Text(
+                            '${delivery.quantity} ${delivery.unit} delivered',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                ],
+                    if (delivery.deliveredAt != null)
+                      Text(
+                        'Delivered',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.green[700],
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                  ],
+                ),
               ),
-            )),
+            ),
         ],
       ),
     );
@@ -659,7 +663,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Pause Subscription'),
-        content: const Text('Are you sure you want to pause this subscription? You can resume it anytime.'),
+        content: const Text(
+          'Are you sure you want to pause this subscription? You can resume it anytime.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -682,7 +688,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Cancel Subscription'),
-        content: const Text('Are you sure you want to cancel this subscription? This action cannot be undone.'),
+        content: const Text(
+          'Are you sure you want to cancel this subscription? This action cannot be undone.',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -712,12 +720,17 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                onPressed: newQuantity > 1 ? () => setState(() => newQuantity--) : null,
+                onPressed: newQuantity > 1
+                    ? () => setState(() => newQuantity--)
+                    : null,
                 icon: const Icon(Icons.remove),
               ),
               Text(
                 newQuantity.toString(),
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               IconButton(
                 onPressed: () => setState(() => newQuantity++),
@@ -745,9 +758,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
 
   Future<void> _pauseSubscription(AdvancedSubscription subscription) async {
     try {
-      final service = ref.read(advancedSubscriptionServiceProvider);
+      final service = ref.read(subscriptionServiceProvider);
       await service.pauseSubscription(subscription.subscriptionId, []);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -770,9 +783,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
 
   Future<void> _resumeSubscription(AdvancedSubscription subscription) async {
     try {
-      final service = ref.read(advancedSubscriptionServiceProvider);
+      final service = ref.read(subscriptionServiceProvider);
       await service.resumeSubscription(subscription.subscriptionId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -793,11 +806,17 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
     }
   }
 
-  Future<void> _updateQuantity(AdvancedSubscription subscription, int newQuantity) async {
+  Future<void> _updateQuantity(
+    AdvancedSubscription subscription,
+    int newQuantity,
+  ) async {
     try {
-      final service = ref.read(advancedSubscriptionServiceProvider);
-      await service.updateSubscriptionQuantity(subscription.subscriptionId, newQuantity);
-      
+      final service = ref.read(subscriptionServiceProvider);
+      await service.updateSubscriptionQuantity(
+        subscription.subscriptionId,
+        newQuantity,
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
@@ -820,9 +839,9 @@ class _SubscriptionDetailsScreenState extends ConsumerState<SubscriptionDetailsS
 
   Future<void> _cancelSubscription(AdvancedSubscription subscription) async {
     try {
-      final service = ref.read(advancedSubscriptionServiceProvider);
+      final service = ref.read(subscriptionServiceProvider);
       await service.cancelSubscription(subscription.subscriptionId);
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

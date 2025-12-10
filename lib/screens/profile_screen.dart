@@ -43,6 +43,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
     _loadAddressData();
   }
 
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -323,17 +324,20 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         Expanded(
           child: Consumer(
             builder: (context, ref, child) {
-              final wishlistcount=ref.watch(wishlistProvider).wishlistItems.length;
-            
-           return _buildStatCard(
-              icon: Icons.favorite_outlined,
-              title: 'Wishlist',
-              value: wishlistcount.toString(),
-              color: Colors.red,
-            );
-            }
+              final wishlistcount = ref
+                  .watch(wishlistProvider)
+                  .wishlistItems
+                  .length;
+
+              return _buildStatCard(
+                icon: Icons.favorite_outlined,
+                title: 'Wishlist',
+                value: wishlistcount.toString(),
+                color: Colors.red,
+              );
+            },
           ),
-        ), 
+        ),
       ],
     );
   }

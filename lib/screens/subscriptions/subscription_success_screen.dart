@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:task_new/controllers/subscription_controller.dart';
+import 'package:task_new/controllers/subscription_service.dart';
 import 'package:task_new/utils/app_colors.dart';
 import 'package:task_new/screens/subscriptions/subscription_details_screen.dart';
 
@@ -12,7 +13,7 @@ class SubscriptionSuccessScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final subscriptionService = ref.watch(advancedSubscriptionServiceProvider);
+    final subscriptionService = ref.watch(subscriptionServiceProvider);
     final subscription = subscriptionService.getSubscriptionById(
       subscriptionId,
     );

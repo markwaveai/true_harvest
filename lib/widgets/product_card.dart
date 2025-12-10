@@ -45,84 +45,74 @@ class ProductCard extends ConsumerWidget {
                             ),
                       ),
                     ),
-                    Positioned(
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          if (product.category.isMilk ||
-                              product.category.isCurd ||
-                              product.category.isdryFruits ||
-                              product.category.isfruit ||
-                              product.category.issprouts)
-                            Positioned(
-                              top: 3,
-                              left: 3,
-                              child: Container(
-                                margin: EdgeInsets.only(left: 4),
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6.0,
-                                  vertical: 2.0,
-                                ),
-                                decoration: BoxDecoration(
-                                  color: AppColors.darkGreen,
-                                  borderRadius: BorderRadius.circular(20),
-                                ),
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      "Subscriber",
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                            color: Colors.white,
-                                            fontSize: 6,
-                                            fontWeight: FontWeight.normal,
-                                          ),
-                                    ),
-                                    Text(
-                                      "⭐ Special ⭐",
-                                      style: Theme.of(context)
-                                          .textTheme
-                                          .bodySmall!
-                                          .copyWith(
-                                            color: Colors.white,
-                                            fontSize: 7,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          Positioned(
-                            top: 3,
-                            right: 2,
-                            child: Consumer(
-                              builder: (context, ref, child) {
-                                final wishlist = ref.watch(wishlistProvider);
-                                final wishlistController = ref.read(
-                                  wishlistProvider.notifier,
-                                );
 
-                                return IconButton(
-                                  icon: Icon(
-                                    wishlist.isInWishlist(product)
-                                        ? Icons.favorite
-                                        : Icons.favorite_border,
-                                    color: wishlist.isInWishlist(product)
-                                        ? Colors.red
-                                        : Colors.grey,
-                                  ),
-                                  onPressed: () {
-                                    wishlistController.toggleWishlist(product);
-                                  },
-                                );
-                              },
-                            ),
+                    if (product.category.isMilk ||
+                        product.category.isCurd ||
+                        product.category.isdryFruits ||
+                        product.category.isfruit ||
+                        product.category.issprouts)
+                      Positioned(
+                        top: 10,
+                        left: 3,
+                        child: Container(
+                          margin: EdgeInsets.only(left: 4),
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 6.0,
+                            vertical: 2.0,
                           ),
-                        ],
+                          decoration: BoxDecoration(
+                            color: AppColors.darkGreen,
+                            borderRadius: BorderRadius.circular(20),
+                          ),
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                "Subscriber",
+                                style: Theme.of(context).textTheme.bodySmall!
+                                    .copyWith(
+                                      color: Colors.white,
+                                      fontSize: 6,
+                                      fontWeight: FontWeight.normal,
+                                    ),
+                              ),
+                              Text(
+                                "⭐ Special ⭐",
+                                style: Theme.of(context).textTheme.bodySmall!
+                                    .copyWith(
+                                      color: Colors.white,
+                                      fontSize: 7,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    Positioned(
+                      top: -5,
+                      right: 2,
+                      child: Consumer(
+                        builder: (context, ref, child) {
+                          final wishlist = ref.watch(wishlistProvider);
+                          final wishlistController = ref.read(
+                            wishlistProvider.notifier,
+                          );
+
+                          return IconButton(
+                            icon: Icon(
+                              wishlist.isInWishlist(product)
+                                  ? Icons.favorite
+                                  : Icons.favorite_border,
+                              color: wishlist.isInWishlist(product)
+                                  ? Colors.red
+                                  : Colors.grey,
+                            ),
+                            onPressed: () {
+                              wishlistController.toggleWishlist(product);
+                            },
+                          );
+                        },
                       ),
                     ),
                   ],
