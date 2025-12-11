@@ -1,20 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:task_new/models/product_model.dart';
 import 'package:task_new/screens/auth/auth_wrapper.dart';
 import 'package:task_new/screens/auth/login_screen.dart';
 import 'package:task_new/screens/auth/otp_screen.dart';
 import 'package:task_new/screens/cart_screen.dart';
+import 'package:task_new/screens/checkout_screen.dart';
 import 'package:task_new/screens/home_screen.dart';
 import 'package:task_new/screens/main_screen.dart';
 import 'package:task_new/screens/onboarding/splash_screen.dart';
+import 'package:task_new/screens/payment_success_screen.dart';
 import 'package:task_new/screens/product_details_view.dart';
 import 'package:task_new/screens/profile_screen.dart';
-import 'package:task_new/screens/subscriptions/delivery_schedule_screen.dart';
-import 'package:task_new/screens/checkout_screen.dart';
-import 'package:task_new/screens/payment_success_screen.dart';
 import 'package:task_new/screens/subscriptions/subscription_home_screen.dart';
 import 'package:task_new/screens/wishlist_screen.dart';
-import 'package:task_new/models/product_model.dart';
-import 'package:task_new/models/subscription_model.dart';
 
 class AppRoutes {
   // Route names
